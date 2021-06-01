@@ -1,7 +1,9 @@
+# %%
 import pandas as pd
 import numpy as np
 import glob
 
+# %%
 #... READING ALL DATA FRAMES
 
 big_df = pd.DataFrame() 
@@ -9,7 +11,7 @@ big_df = pd.DataFrame()
 for filename in glob.glob("./Rating_*.xlsx"):
 #    connres.commit()
     print ("READING DATABASE: "+filename)
-    df = pd.read_excel(open(filename,'rb'), sheetname="Resultados",header = None) #Reading SABI Export without index  
+    df = pd.read_excel(open(filename,'rb'), sheet_name="Resultados",header = None) #Reading SABI Export without index  
     df.columns = ['id', 'nombre_x', 'nif', 'nombre', 'provincia', 'calle', 'telefono', 'web', 'desc_actividad', 'cnae', 'cod_consolidacion', 'rating_grade_h2', 'rating_grade_h1', 'rating_grade_h0', 'rating_numerico_h2', 'rating_numerico_h1', 'rating_numerico_h0', 'modelo_propension_h2', 'modelo_propension_h1', 'modelo_propension_h0', 'guo_nombre', 'guo_id_bvd', 'guo_pais', 'guo_tipo', 'estado_detallado', 'fecha_cambio_estado', 'fecha_constitucion', 'p10000_h0', 'p10000_h1', 'p10000_h2', 'p20000_h0', 'p20000_h1', 'p20000_h2', 'p31200_h0', 'p31200_h1', 'p31200_h2', 'p32300_h0', 'p32300_h1', 'p32300_h2', 'p40100_mas_40500_h0', 'p40100_mas_40500_h1', 'p40100_mas_40500_h2', 'p40800_h0', 'p40800_h1', 'p40800_h2', 'p49100_h0', 'p49100_h1', 'p49100_h2']
     df['h0_anio'] = 2017     
     df = df.fillna('')
@@ -21,7 +23,7 @@ for filename in glob.glob("./Rating_*.xlsx"):
     df['nif_normalizado'] = df['nif'].str[-8:]    
     big_df = big_df.append(df, ignore_index=True)     
 
-
+# %%
 df = big_df
 df['target_status'] = [0 if i in ['Activa', ''] else 1 for i in df['estado_detallado']] # 0 si Activa, 1 si algo raro!
 
@@ -52,7 +54,7 @@ df['rraa_rrpp'] = (df.p10000_h1 - df.p20000_h1) /df.p20000_h1
 # Log of Operating Income
 df['log_operating_income'] = np.log(df.p40100_mas_40500_h1)
 
-
+# %%
 from sklearn.ensemble import RandomForestClassifier
 model = RandomForestClassifier(random_state=1234)
 
@@ -64,6 +66,7 @@ fitted_model = model.fit(X, y)
 y_pred = fitted_model.predict(X)
 y_pred_proba = fitted_model.predict_proba(X)[:,1]
 
+# %%
 print ("ASSESSING THE MODEL...")
 # CALCULATING GINI PERFORMANCE ON DEVELOPMENT SAMPLE
 from sklearn.metrics import roc_auc_score
@@ -77,10 +80,9 @@ print ("SAVING THE PERSISTENT MODEL...")
 from joblib import dump#, load
 dump(fitted_model, 'Rating_RandomForestClassifier.joblib') 
 
+# %%
 
 #
 #i=0
 #time_in_datetime = datetime.strptime(df.fecha_cambio_estado.iloc[i], "%Y-%m-%d)
-#
-
-    
+#    

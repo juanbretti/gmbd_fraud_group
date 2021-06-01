@@ -1,0 +1,25 @@
+* Sheets selected as group
+* EDA: https://github.com/pandas-profiling/pandas-profiling
+
+
+* We can add more features to the model
+* Feature engineering
+** Ratios
+** Bins
+** Sign change as a feature
+** Missing, add column
+
+* Remove IDs
+* Remove `NIF`
+* add change of the markers over time
+* rename the columns, with the proper name
+* include more variables in `X_train` 
+* Check if the value_counts() of y_train is balanced or unbalanced. Add `class_weight`
+
+* We could add
+** Date of creation. But has to be implemented in the DB as well. It's very complete.
+*** Add Year, Month, Day
+** Country
+** Rating (in time)
+
+* Then do https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SequentialFeatureSelector.html
