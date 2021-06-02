@@ -56,7 +56,7 @@ df['log_operating_income'] = np.log(df.p40100_mas_40500_h1)
 
 # %%
 from sklearn.ensemble import RandomForestClassifier
-model = RandomForestClassifier(random_state=1234)
+model = RandomForestClassifier(random_state=1234, bootstrap=False, class_weight='balanced_subsample')
 
 df_clean = df[['ebitda_income','debt_ebitda','rraa_rrpp','log_operating_income','target_status']].replace([np.inf, -np.inf], np.nan).dropna()
 X = df_clean[['ebitda_income','debt_ebitda','rraa_rrpp','log_operating_income']]
@@ -76,13 +76,15 @@ print ("GINI DEVELOPMENT=", gini_score)
 from sklearn.metrics import accuracy_score
 print("Accuracy: {0}".format(accuracy_score(y_pred,y)))
 
+from sklearn.metrics import confusion_matrix
+print('Confusion matrix:\n', confusion_matrix(y, y_pred))
+
 print ("SAVING THE PERSISTENT MODEL...")
 from joblib import dump#, load
 dump(fitted_model, 'Rating_RandomForestClassifier.joblib') 
 
 # %%
 
-#
 #i=0
 #time_in_datetime = datetime.strptime(df.fecha_cambio_estado.iloc[i], "%Y-%m-%d)
 #    

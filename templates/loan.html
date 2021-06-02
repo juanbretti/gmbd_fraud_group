@@ -11,6 +11,7 @@ Dashboard
 {% endblock %}
 
 {% block content %}
+
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
         <div class="navbar-header">
@@ -20,18 +21,13 @@ Dashboard
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#">Fintech Project</a>
+          <img src="{{url_for('.static', filename='logo.png')}}" alt="Baniank logo" height="40" >
+          <div class="navbar-brand">{{bank_name}}</div>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
-            <li><a href="#">Dashboard</a></li>
-            <li><a href="#">Settings</a></li>
-            <li><a href="#">Profile</a></li>
             <li><a href="{{ url_for('logout') }}">Log Out</a></li>
           </ul>
-          <form class="navbar-form navbar-right">
-            <input type="text" class="form-control" placeholder="Search...">
-          </form>
         </div>
       </div>
     </nav>
@@ -41,6 +37,7 @@ Dashboard
         <div class="col-sm-3 col-md-2 sidebar">
           <ul class="nav nav-sidebar">
             <li class="active"><a href="/loan">Loan Request<span class="sr-only">(current)</span></a></li>
+            <li class="inactive"><a href="/currents">Current Requests<span class="sr-only">(current)</span></a></li>
           </ul>
         </div>
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
@@ -54,7 +51,7 @@ Dashboard
                 {{ wtf.form_field(form.loan_amount) }}
                 {{ wtf.form_field(form.number_of_installments) }}
                 {{ wtf.form_field(form.nif) }}                
-                <button class="btn btn-lg btn-primary btn-block" type="submit">Solicitar</button>
+                <button class="btn btn-lg btn-primary btn-block" type="submit">Request</button>
               </form>
            {% else %}      
               <h2> {{ message }} </h2>
@@ -71,6 +68,7 @@ Dashboard
                   <th>NIF</th>
                   <th>Username / Usuario</th>
                   <th>Order Status / Estado del Pedido</th>
+                  <th>Date / Fecha</th>
                 </tr>
               </thead>
               <tbody>   
@@ -86,6 +84,7 @@ Dashboard
                     <td> {{ row.nif }} </td>
                     <td> {{ row.username }} </td>
                     <td> {{ row.status }} </td>
+                    <td> {{ row.data_timestamp }} </td>
                 </tr>
                 {% endfor %}
               </tbody>

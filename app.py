@@ -20,6 +20,9 @@ LAST: make sure you change the working directory to be the path where the app.py
 FINALLY: you can hit run!
 
 """
+
+# %%
+## Libraries ----
 from flask import Flask, render_template, redirect, url_for, request
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm 
@@ -32,6 +35,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 
 from sklearn.ensemble import RandomForestClassifier
 
+## Constants ----
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'Thisissupposedtobesecret!'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./database/database.db'
@@ -41,8 +45,9 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+BANK_NAME = 'Baniank'
 
-
+## Helper functions ----
 # Support function for calculating monthly payment
 import math
 def calc_monthly_payment(principal, interest, months):
@@ -69,6 +74,9 @@ class MyFloatField(FloatField):
                 self.data = None
                 raise ValueError(self.gettext('The value entered is not numeric'))
 
+# %%
+## SQLAlchemy ----
+
 ##############################################################################
 #     SQLAlchemy ORM classes - START                                         #
 ##############################################################################
@@ -81,9 +89,9 @@ class Bank(UserMixin, db.Model):
     coef_own_capital = db.Column(db.Float,default=10.0)
     coef_ebitda = db.Column(db.Float,default=33.0)
     coef_concentration = db.Column(db.Float,default=5.0)
+    prob_default = db.Column(db.Float,default=0.5)
 
 bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
-
 
 # SQLAlchemy ORM class for users
 class User(UserMixin, db.Model):
@@ -94,6 +102,7 @@ class User(UserMixin, db.Model):
     profile = db.Column(db.String(80), default='customer')
 
 # SQLAlchemy ORM class for loans
+from datetime import datetime
 class Loan(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     loan_amount = db.Column(db.Float())
@@ -101,11 +110,10 @@ class Loan(UserMixin, db.Model):
     username = db.Column(db.String(15))
     nif = db.Column(db.String(9))
     status = db.Column(db.String(15))
-    monthly_payment = db.Column(db.Float()) 
-    
+    monthly_payment = db.Column(db.Float())
+    data_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
 # SQLAlchemy ORM class for Companies
-from datetime import datetime
 class Company(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nif = db.Column(db.String(9))
@@ -127,6 +135,8 @@ class Company(UserMixin, db.Model):
 #     SQLAlchemy ORM classes - END                                           #
 ##############################################################################
 
+# %%
+## Flask forms ----
 
 ##############################################################################
 #     FlaskForm classes - START                                              #
@@ -165,12 +175,12 @@ class CompanyForm(FlaskForm):
     p20000 = MyFloatField('Own Capital / Patrimonio neto', validators=[InputRequired()])
     p31200_plus_32300 = MyFloatField('Total Debt / Deuda total', validators=[InputRequired()])
 
-
 ##############################################################################
 #     FlaskForm classes - END                                                #
 ##############################################################################
 
-
+# %%
+## Flask route definition ----
 
 ##############################################################################
 #     FLASK APP ROUTE DEFITION - START                                       #
@@ -183,12 +193,7 @@ def load_user(user_id):
     
 @app.route('/')
 def index():
-    return render_template('index.html')
-
-@app.route('/formulario_multipaso')
-def formulario_multipaso():
-    return render_template('formulario_multipaso.html')
-
+    return render_template('index.html', bank_name=BANK_NAME)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -203,7 +208,7 @@ def login():
 
         message = 'Invalid username or password'
 
-    return render_template('login.html', form=form, message=message)
+    return render_template('login.html', form=form, message=message, bank_name=BANK_NAME)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -216,10 +221,8 @@ def signup():
         db.session.commit()
         message='New user has been created!'
         form = LoginForm()
-        return render_template('login.html', form=form, message=message)
-    return render_template('signup.html', form=form, message=message)
-
-
+        return render_template('login.html', form=form, message=message, bank_name=BANK_NAME)
+    return render_template('signup.html', form=form, message=message, bank_name=BANK_NAME)
 
 @app.route('/loan', methods=['GET', 'POST'])
 @login_required
@@ -283,7 +286,8 @@ def loan():
             return render_template('company.html', form=form, \
                                    rows=order_history, \
                                    message=message, \
-                                   name=current_user.username)
+                                   name=current_user.username, \
+                                   bank_name=BANK_NAME)
                 
         else:
             try: #In this case, we try to check if the user clicked to edit data of a loan
@@ -299,9 +303,20 @@ def loan():
     return render_template('loan.html', form=form, \
                            rows=order_history, \
                            message=message, \
-                           name=current_user.username)
+                           name=current_user.username, \
+                           bank_name=BANK_NAME)
 
+@app.route('/currents')
+@login_required
+def currents():
+    order_history = Loan.query.filter_by(username=current_user.username)
+    return render_template('currents.html', \
+                            rows=order_history, \
+                            name=current_user.username, \
+                            bank_name=BANK_NAME)
 
+# %%
+### RandomForestClassifier ----
 import numpy as np
 import pandas as pd
 from joblib import load
@@ -387,7 +402,7 @@ def company():
         #Bank
         try:
             loans = Loan.query.filter(Loan.nif.in_([company.nif]), \
-                                              Loan.status.in_(['acepted']))
+                                      Loan.status.in_(['acepted']))
             used_amount = sum([loan.loan_amount for loan in loans])
         except:
             used_amount = 0
@@ -403,7 +418,7 @@ def company():
 
         if limite_acepted - used_amount < order.loan_amount:
             automated_decision = 'rejected'
-        elif prob_default > 0.00000000000000001:
+        elif prob_default > bank.prob_default:
             automated_decision = 'rejected'
         
         try:
@@ -422,7 +437,8 @@ def company():
         return render_template('company.html', form=form, \
                                rows=order_history , \
                                message=message, \
-                               name=current_user.username)
+                               name=current_user.username, \
+                               bank_name=BANK_NAME)
     else: # request acepted
         monthly_payment = calc_monthly_payment(loan.loan_amount, 7.5, \
                                                loan.number_of_installments)
@@ -437,8 +453,8 @@ def company():
         return render_template('company.html', form=form, \
                                rows=order_history , \
                                message=message, \
-                               name=current_user.username)
-
+                               name=current_user.username, \
+                               bank_name=BANK_NAME)
 
 @app.route('/logout')
 @login_required
@@ -450,7 +466,8 @@ def logout():
 #     FLASK APP ROUTE DEFITION - END                                       #
 ##############################################################################
 
-
+# %%
+## Main ----
 if __name__ == '__main__':
     app.run(debug=True)
 
