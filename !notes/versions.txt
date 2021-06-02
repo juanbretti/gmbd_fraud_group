@@ -1,0 +1,6 @@
+import sklearn
+sklearn.__version__
+
+pip3.8 install --user --upgrade --force-reinstall scikit-learn  
+
+pip install scikit-learn==0.21.3
