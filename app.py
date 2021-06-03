@@ -118,6 +118,7 @@ class Company(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nif = db.Column(db.String(9))
     name = db.Column(db.String(50))
+    cnae = db.Column(db.String(1))
     p10000 = db.Column(db.Float)
     p20000 = db.Column(db.Float)
     p40100_plus_40500 = db.Column(db.Float)
@@ -169,6 +170,7 @@ class CompanyForm(FlaskForm):
     number_of_installments = SelectField('Number of Installments / Número de Pago', choices=[('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'),('5', '5'), ('6', '6'), ('7', '7'), ('8', '8')])           
     nif = StringField('Id of the Company / NIF de su Empresa', validators=[InputRequired(), Length(min=9, max=9)],default='')    
     name = StringField('Name of your Company / Nombre/Razón Social de su Empresa', validators=[InputRequired(), Length(min=3, max=50)])
+    cnae = SelectField('Industry class / CNAE', choices=[('0', '0'), ('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'),('5', '5'), ('6', '6'), ('7', '7'), ('8', '8'), ('9', '9')])           
     p40100_plus_40500 = MyFloatField('Operating Income / Ingresos', validators=[InputRequired()])
     p49100_plus_40800 = MyFloatField('EBITDA', validators=[InputRequired()])
     p10000 = MyFloatField('Total Assets / Total activos', validators=[InputRequired()])
@@ -268,6 +270,7 @@ def loan():
                                 loan_amount = form.loan_amount.data, \
                                 number_of_installments = form.number_of_installments.data, \
                                 name = company.name, \
+                                cnae = company.cnae, \
                                 p40100_plus_40500 = company.p40100_plus_40500, \
                                 p31200_plus_32300 = company.p31200_plus_32300, \
                                 p49100_plus_40800 = company.p49100_plus_40800, \
@@ -320,7 +323,10 @@ def currents():
 import numpy as np
 import pandas as pd
 from joblib import load
+
 Rating_RandomForestClassifier_model = load('./database/Rating_RandomForestClassifier.joblib') 
+scaler_concat = load('./database/scaler_concat.joblib') 
+
 @app.route('/company', methods=['GET', 'POST'])
 @login_required
 def company(): 
@@ -355,6 +361,10 @@ def company():
                               'rraa_rrpp' : [rraa_rrpp], \
                               'log_operating_income' : [log_operating_income]
                               })
+
+            # Apply the StandardScaler for this particular CNAE
+            X = scaler_concat[form.cnae.data].transform(X)
+            # Predict the probability
             prob_default = Rating_RandomForestClassifier_model.predict_proba(X)[:,1]
         
             try: # UPDATING DATA OF AN EXISTING COMPANY
@@ -366,6 +376,7 @@ def company():
 
             if update_or_new == 1: # UPDATING DATA FROM AN EXISTING COMPANY
                 company.name = form.name.data
+                company.cnae = form.cnae.data
                 company.p10000 = form.p10000.data
                 company.p20000 = form.p20000.data
                 company.p40100_plus_40500 = form.p40100_plus_40500.data
@@ -383,6 +394,7 @@ def company():
                 new_company = Company(
                         nif = form.nif.data, \
                         name = form.name.data, \
+                        cnae = form.cnae.data, \
                         p10000 = form.p10000.data, \
                         p20000 = form.p20000.data, \
                         p40100_plus_40500 = form.p40100_plus_40500.data, \

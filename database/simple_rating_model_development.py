@@ -55,12 +55,40 @@ df['rraa_rrpp'] = (df.p10000_h1 - df.p20000_h1) /df.p20000_h1
 df['log_operating_income'] = np.log(df.p40100_mas_40500_h1)
 
 # %%
+# hard option) Using the first digit of CNAE as industry, apply standard scaler transformation by industry, fit a new model, dump (export) the new fitted model and also dump the standard scale transformations. Implement the new model and the standard scale transformations by industry into app.py (again, this is not graded)
+
+# Create the CNAE
+df['cnae_first'] = df['cnae'].astype(str).str[0]
+df = df[~df['cnae_first'].isna()]
+
+from sklearn.preprocessing import StandardScaler
+
+columns_to_scale = ['ebitda_income','debt_ebitda','rraa_rrpp','log_operating_income']
+column_target = ['target_status']
+
+df_concat = pd.DataFrame()
+scaler_concat = {}
+
+for first in df['cnae_first'].unique():
+    # Select X
+    df_first = df[df['cnae_first']==first]
+    df_first = df_first[columns_to_scale+column_target].replace([np.inf, -np.inf], np.nan).dropna()
+    # Scale X
+    encoder = StandardScaler().fit(df_first[columns_to_scale])
+    df_first_scaled = encoder.transform(df_first[columns_to_scale])
+    df_first_scaled = pd.DataFrame(df_first_scaled, columns=columns_to_scale)
+    # Add y
+    df_first_scaled[column_target] = df_first[column_target].values
+    # Concat
+    df_concat = df_concat.append(df_first_scaled)
+    scaler_concat.update({first: encoder})
+
+# %%
 from sklearn.ensemble import RandomForestClassifier
 model = RandomForestClassifier(random_state=1234, bootstrap=False, class_weight='balanced_subsample')
 
-df_clean = df[['ebitda_income','debt_ebitda','rraa_rrpp','log_operating_income','target_status']].replace([np.inf, -np.inf], np.nan).dropna()
-X = df_clean[['ebitda_income','debt_ebitda','rraa_rrpp','log_operating_income']]
-y = df_clean['target_status']
+X = df_concat[columns_to_scale]
+y = df_concat[column_target]
 
 fitted_model = model.fit(X, y)
 y_pred = fitted_model.predict(X)
@@ -79,9 +107,11 @@ print("Accuracy: {0}".format(accuracy_score(y_pred,y)))
 from sklearn.metrics import confusion_matrix
 print('Confusion matrix:\n', confusion_matrix(y, y_pred))
 
+# %%
 print ("SAVING THE PERSISTENT MODEL...")
 from joblib import dump#, load
 dump(fitted_model, 'Rating_RandomForestClassifier.joblib') 
+dump(scaler_concat, 'scaler_concat.joblib') 
 
 # %%
 
