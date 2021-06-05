@@ -113,6 +113,15 @@ from sklearn.metrics import confusion_matrix
 print('Confusion matrix:\n', confusion_matrix(y, y_pred))
 
 # %%
+# https://scikit-plot.readthedocs.io/en/stable/metrics.html#scikitplot.metrics.plot_roc
+# https://towardsdatascience.com/optimal-threshold-for-imbalanced-classification-5884e870c293
+import matplotlib.pyplot as plt
+import scikitplot as skplt
+y_pred_proba = fitted_model.predict_proba(X)
+skplt.metrics.plot_roc(y, y_pred_proba)
+plt.show()
+
+# %%
 print ("SAVING THE PERSISTENT MODEL...")
 from joblib import dump#, load
 dump(fitted_model, 'Rating_RandomForestClassifier.joblib') 
