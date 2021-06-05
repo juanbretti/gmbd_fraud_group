@@ -128,6 +128,7 @@ class Company(UserMixin, db.Model):
     debt_ebitda = db.Column(db.Float)
     rraa_rrpp = db.Column(db.Float) # Leveraging - External Resources / Own Resources - Recursos Ajenos / recursos propios
     log_operating_income = db.Column(db.Float)
+    return_on_assets = db.Column(db.Float)
     prob_default = db.Column(db.Float)
     username = db.Column(db.String(15))    
     data_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
@@ -159,7 +160,7 @@ class LoginForm(FlaskForm):
 class LoanForm(FlaskForm):
     rowid = StringField('Order ID / ID del Pedido')
     loan_amount = MyFloatField('Loan Amount / Valor del Prestámo ', validators=[InputRequired()])
-    number_of_installments = SelectField('Number of Installments / Número de Pagos', choices=[('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'),('5', '5'), ('6', '6'), ('7', '7'), ('8', '8')])        
+    number_of_installments = SelectField('Number of Installments / Número de Pagos', choices=[('1', '1 payment'), ('2', '2 payments'), ('3', '3 payments'), ('4', '4 payments'),('5', '5 payments'), ('6', '6 payments'), ('7', '7 payments'), ('8', '8 payments')])        
     nif = StringField('Id of the Company / NIF de su Empresa', validators=[InputRequired(), Length(min=9, max=9)],default='')    
 
 # FlaskForm class for Company Form
@@ -170,7 +171,7 @@ class CompanyForm(FlaskForm):
     number_of_installments = SelectField('Number of Installments / Número de Pago', choices=[('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'),('5', '5'), ('6', '6'), ('7', '7'), ('8', '8')])           
     nif = StringField('Id of the Company / NIF de su Empresa', validators=[InputRequired(), Length(min=9, max=9)],default='')    
     name = StringField('Name of your Company / Nombre/Razón Social de su Empresa', validators=[InputRequired(), Length(min=3, max=50)])
-    cnae = SelectField('Industry class / CNAE', choices=[('0', '0'), ('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'),('5', '5'), ('6', '6'), ('7', '7'), ('8', '8'), ('9', '9')])           
+    cnae = SelectField('Industry class / CNAE', choices=[('0', 'Agriculture'), ('1', 'Industry'), ('2', 'Construction'), ('3', 'Households'), ('4', 'Engines'),('5', 'Space'), ('6', 'Insurance'), ('7', 'Renting'), ('8', 'Defence'), ('9', 'Entertainment')])           
     p40100_plus_40500 = MyFloatField('Operating Income / Ingresos', validators=[InputRequired()])
     p49100_plus_40800 = MyFloatField('EBITDA', validators=[InputRequired()])
     p10000 = MyFloatField('Total Assets / Total activos', validators=[InputRequired()])
@@ -347,7 +348,7 @@ def company():
                 debt_ebitda = 99.99
 
             try:                
-                rraa_rrpp = (form.p10000.data - form.p20000.data) /form.p20000.data
+                rraa_rrpp = (form.p10000.data - form.p20000.data) / form.p20000.data
             except:
                 rraa_rrpp = 99.99
             
@@ -355,11 +356,17 @@ def company():
                 log_operating_income = np.log(form.p40100_plus_40500.data)
             except:
                 log_operating_income = 0.0
+
+            try:
+                return_on_assets = form.p49100_plus_40800.data / form.p10000.data
+            except:
+                return_on_assets = 0.0
                 
             X = pd.DataFrame({'ebitda_income': [ebitda_income], \
                               'debt_ebitda': [debt_ebitda], \
                               'rraa_rrpp' : [rraa_rrpp], \
-                              'log_operating_income' : [log_operating_income]
+                              'log_operating_income': [log_operating_income], \
+                              'return_on_assets': [return_on_assets],
                               })
 
             # Apply the StandardScaler for this particular CNAE
@@ -387,6 +394,7 @@ def company():
                 company.rraa_rrpp = rraa_rrpp
                 company.prob_default = prob_default
                 company.log_operating_income = log_operating_income 
+                company.return_on_assets = return_on_assets 
                 company.username = current_user.username
                 db.session.commit()
                 message = 'Company data updated!'
@@ -405,6 +413,7 @@ def company():
                         rraa_rrpp = rraa_rrpp, \
                         prob_default = prob_default, \
                         log_operating_income = log_operating_income, \
+                        return_on_assets = return_on_assets, \
                         username = current_user.username
                         )
                 db.session.add(new_company)
@@ -482,4 +491,3 @@ def logout():
 ## Main ----
 if __name__ == '__main__':
     app.run(debug=True)
-

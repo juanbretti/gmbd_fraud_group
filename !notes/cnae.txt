@@ -1,0 +1,12 @@
+https://www.cnae.com.es/lista-actividades.php
+
+0 Agriculture
+1 Industry
+2 Construction
+3 Households
+4 Engines
+5 Space
+6 Insurance
+7 Renting
+8 Defense
+9 Enterteinment

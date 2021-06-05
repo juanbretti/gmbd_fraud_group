@@ -35,14 +35,14 @@ df['target_status'] = [0 if i in ['Activa', ''] else 1 for i in df['estado_detal
 # Ebita Margin - Ebitda / Turn over (Ventas)
 # p49100: Profit (Resultado del ejercicio)
 # p40800: Amortization (Amortización) 
-# p40100: Sales Turnover (Ingresos de Explotación)
+# p40100: Sales Turnover (Ingresos de Explotación) >> Revenue
 # p40500: Other sales (Otros Ingresos)
 df['ebitda_income'] = (df.p49100_h1+df.p40800_h1)/(df.p40100_mas_40500_h1) 
 
-# Total Debt / Ebita 
+# Total Debt / Ebitada
 # p31200: Short Term Debt / Deuda a corto plazo
 # p32300: Long Term Debt / Deuda a largo plazo
-# p49100: Profit (Resultado del ejercicio)
+# p49100: Profit (Resultado del ejercicio) >> Income
 # p40800: Amortization (Amortización) 
 df['debt_ebitda'] =(df.p31200_h1 + df.p32300_h1) /(df.p49100_h1+df.p40800_h1) 
 
@@ -54,6 +54,11 @@ df['rraa_rrpp'] = (df.p10000_h1 - df.p20000_h1) /df.p20000_h1
 # Log of Operating Income
 df['log_operating_income'] = np.log(df.p40100_mas_40500_h1)
 
+# EBITDA / Total Assets
+# EBITDA Return on Assets
+# https://www.arborinvestmentplanner.com/return-on-total-assets-ratios-calculations/
+df['return_on_assets'] = (df.p49100_h1+df.p40800_h1) / df.p10000_h1
+
 # %%
 # hard option) Using the first digit of CNAE as industry, apply standard scaler transformation by industry, fit a new model, dump (export) the new fitted model and also dump the standard scale transformations. Implement the new model and the standard scale transformations by industry into app.py (again, this is not graded)
 
@@ -63,7 +68,7 @@ df = df[~df['cnae_first'].isna()]
 
 from sklearn.preprocessing import StandardScaler
 
-columns_to_scale = ['ebitda_income','debt_ebitda','rraa_rrpp','log_operating_income']
+columns_to_scale = ['ebitda_income','debt_ebitda','rraa_rrpp','log_operating_income', 'return_on_assets']
 column_target = ['target_status']
 
 df_concat = pd.DataFrame()
