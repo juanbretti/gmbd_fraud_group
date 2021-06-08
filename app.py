@@ -39,19 +39,24 @@ import numpy as np
 import pandas as pd
 from joblib import load
 import math
+
 from datetime import datetime
+import sqlite3
+import matplotlib.pyplot as plt
 
 ## Constants ----
+BANK_NAME = 'Baniank'
+INTEREST_RATE = 7.5
+CONNECTION_STRING = './database/database.db'
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'Thisissupposedtobesecret!'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///./database/database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + CONNECTION_STRING
 bootstrap = Bootstrap(app)
 db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-
-BANK_NAME = 'Baniank'
 
 # Read available CNAEs
 cnaes = pd.read_csv('./static/cnae-list.txt', sep='|', dtype={'Code': str, 'Description': str} )
@@ -470,7 +475,7 @@ def company():
                                bank_name=BANK_NAME, \
                                cnaes=cnaes)
     else: # request acepted
-        monthly_payment = calc_monthly_payment(loan.loan_amount, 7.5, \
+        monthly_payment = calc_monthly_payment(loan.loan_amount, INTEREST_RATE, \
                                                loan.number_of_installments)
         message = 'Congratulations, your loan has been accepted and with a monthly payment of: %.2f'% \
         (monthly_payment) + " €"
@@ -493,6 +498,33 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+# https://stackoverflow.com/questions/50728328/python-how-to-show-matplotlib-in-flask
+@app.route('/balance_plot')
+@login_required
+def make_plot():
+    cnx = sqlite3.connect(CONNECTION_STRING)   
+    df_loans = pd.read_sql_query("SELECT * FROM loan WHERE status='acepted';", cnx)
+    df_bank = pd.read_sql_query("SELECT * FROM bank;", cnx)
+
+    payments = df_loans.assign(month = [range(x) for x in df_loans['number_of_installments']])
+    payments = payments.explode('month')
+    payments['month'] += 2
+
+    t0 = pd.DataFrame({'month': [0], 'monthly_payment': df_bank['bank_total_assets'].to_list(), 'source': ['Total asset']})
+    t1 = pd.DataFrame({'month': [1], 'monthly_payment': -df_loans['loan_amount'].sum(), 'source': ['Total loaned']})
+
+    transactions = payments.groupby('month').agg({'monthly_payment': sum}).reset_index()
+    transactions = transactions.assign(source = 'Payments')
+
+    transactions = pd.concat([t1, transactions], ignore_index=True)
+    transactions = transactions.assign(cumulative = transactions['monthly_payment'].cumsum())
+
+    ax = transactions.plot.bar(x='month', y=['monthly_payment'], legend=False)
+    transactions.plot.line(y=['cumulative'], color='red', legend=False, ax=ax)
+    # plt.show()
+    plt.savefig('./static/balance_plot.png')
+    return render_template('balance_plot.html', page_name = 'Balance plot', url ='./static/balance_plot.png', name=current_user.username, bank_name=BANK_NAME)
+
 ##############################################################################
 #     FLASK APP ROUTE DEFITION - END                                       #
 ##############################################################################
@@ -501,3 +533,5 @@ def logout():
 ## Main ----
 if __name__ == '__main__':
     app.run(debug=True)
+
+# %%
