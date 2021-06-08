@@ -28,7 +28,7 @@ from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm 
 from wtforms import StringField, PasswordField, BooleanField, FloatField, SelectField
 
-from wtforms.validators import InputRequired, Email, Length
+from wtforms.validators import InputRequired, Email, Length, DataRequired
 from flask_sqlalchemy  import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -179,7 +179,7 @@ class CompanyForm(FlaskForm):
     number_of_installments = SelectField('Number of Installments / Número de Pago', choices=[('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'),('5', '5'), ('6', '6'), ('7', '7'), ('8', '8')])           
     nif = StringField('Id of the Company / NIF de su Empresa', validators=[InputRequired(), Length(min=9, max=9)],default='')    
     name = StringField('Name of your Company / Nombre/Razón Social de su Empresa', validators=[InputRequired(), Length(min=3, max=50)])
-    cnae = StringField('Industry class / CNAE', validators=[InputRequired(), Length(min=4, max=4)],default='')  
+    cnae = StringField('Industry class / CNAE', validators=[DataRequired()], default='')  
     p40100_plus_40500 = MyFloatField('Operating Income / Ingresos', validators=[InputRequired()])
     p49100_plus_40800 = MyFloatField('EBITDA', validators=[InputRequired()])
     p10000 = MyFloatField('Total Assets / Total activos', validators=[InputRequired()])
