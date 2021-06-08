@@ -519,11 +519,16 @@ def make_plot():
     transactions = pd.concat([t1, transactions], ignore_index=True)
     transactions = transactions.assign(cumulative = transactions['monthly_payment'].cumsum())
 
+    cum_interest = transactions['cumulative'].iloc[-1]
+    cum_interest = f'{cum_interest:.2f}'
+
     ax = transactions.plot.bar(x='month', y=['monthly_payment'], legend=False)
     transactions.plot.line(y=['cumulative'], color='red', legend=False, ax=ax)
+    plt.xlabel('Month', fontsize=16)
+    plt.ylabel('Euro', fontsize=16)
     # plt.show()
     plt.savefig('./static/balance_plot.png')
-    return render_template('balance_plot.html', page_name = 'Balance plot', url ='./static/balance_plot.png', name=current_user.username, bank_name=BANK_NAME)
+    return render_template('balance_plot.html', page_name = 'Balance plot', url ='./static/balance_plot.png', name=current_user.username, bank_name=BANK_NAME, cum_interest=cum_interest)
 
 ##############################################################################
 #     FLASK APP ROUTE DEFITION - END                                       #
