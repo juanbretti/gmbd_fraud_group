@@ -45,19 +45,31 @@ Request your loan
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
           <h1 class="page-header">Welcome, {{ name }}</h1>
 
-          {% if message =='' %}
+          {% if message == '' %}
               <form class="form-signin" method="POST" action="/loan">
                 <h2 class="form-signin-heading">Ask for your loan / Pida su préstamo:</h2>
                 {{ form.hidden_tag() }}
-                {{ wtf.form_field(form.rowid,readonly="readonly") }}        
+                {{ wtf.form_field(form.rowid, readonly="readonly") }}        
                 {{ wtf.form_field(form.loan_amount) }}
                 {{ wtf.form_field(form.number_of_installments) }}
-                {{ wtf.form_field(form.nif) }}                
+                <!-- {{ wtf.form_field(form.nif) }}   -->
+                
+                <!-- Control using the `datalist` -->
+                <label class="control-label" for="nif">Id of the Company / NIF de su Empresa</label>
+                <input name="nif" class="form-control" list="companies" type="text">
+                <br/>
+
                 <button class="btn btn-lg btn-primary btn-block" type="submit">Request</button>
               </form>
            {% else %}      
               <h2> {{ message }} </h2>
            {% endif %}      
+
+           <datalist id="companies">
+            {% for company in companies %}
+              <option value="{{ company.nif }}">{{ company.name }}</option>
+            {% endfor %}
+           </datalist>
 
            <h2 class="sub-header">Current requests:</h2>
            <div class="table-responsive">
@@ -86,7 +98,7 @@ Request your loan
                     <td> {{ row.nif }} </td>
                     <td> {{ row.username }} </td>
                     <td> {{ row.status }} </td>
-                    <td> {{ row.data_timestamp }} </td>
+                    <td> {{ row.data_timestamp.strftime('%Y-%m-%d at %H:%M') }} </td>
                 </tr>
                 {% endfor %}
               </tbody>

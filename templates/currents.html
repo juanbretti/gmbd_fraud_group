@@ -71,7 +71,7 @@ Current requests
                     <td> {{ row.nif }} </td>
                     <td> {{ row.username }} </td>
                     <td> {{ row.status }} </td>
-                    <td> {{ row.data_timestamp }} </td>
+                    <td> {{ row.data_timestamp.strftime('%Y-%m-%d at %H:%M') }} </td>
                 </tr>
                 {% endfor %}
               </tbody>

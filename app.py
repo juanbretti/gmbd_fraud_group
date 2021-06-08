@@ -35,6 +35,12 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 
 from sklearn.ensemble import RandomForestClassifier
 
+import numpy as np
+import pandas as pd
+from joblib import load
+import math
+from datetime import datetime
+
 ## Constants ----
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'Thisissupposedtobesecret!'
@@ -47,9 +53,12 @@ login_manager.login_view = 'login'
 
 BANK_NAME = 'Baniank'
 
+# Read available CNAEs
+cnaes = pd.read_csv('./static/cnae-list.txt', sep='|', dtype={'Code': str, 'Description': str} )
+
+# %%
 ## Helper functions ----
 # Support function for calculating monthly payment
-import math
 def calc_monthly_payment(principal, interest, months):
     '''
     given mortgage loan principal, interest(%) and years to pay
@@ -102,7 +111,6 @@ class User(UserMixin, db.Model):
     profile = db.Column(db.String(80), default='customer')
 
 # SQLAlchemy ORM class for loans
-from datetime import datetime
 class Loan(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     loan_amount = db.Column(db.Float())
@@ -171,7 +179,7 @@ class CompanyForm(FlaskForm):
     number_of_installments = SelectField('Number of Installments / Número de Pago', choices=[('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'),('5', '5'), ('6', '6'), ('7', '7'), ('8', '8')])           
     nif = StringField('Id of the Company / NIF de su Empresa', validators=[InputRequired(), Length(min=9, max=9)],default='')    
     name = StringField('Name of your Company / Nombre/Razón Social de su Empresa', validators=[InputRequired(), Length(min=3, max=50)])
-    cnae = SelectField('Industry class / CNAE', choices=[('0', 'Agriculture'), ('1', 'Industry'), ('2', 'Construction'), ('3', 'Households'), ('4', 'Engines'),('5', 'Space'), ('6', 'Insurance'), ('7', 'Renting'), ('8', 'Defence'), ('9', 'Entertainment')])           
+    cnae = StringField('Industry class / CNAE', validators=[InputRequired(), Length(min=4, max=4)],default='')  
     p40100_plus_40500 = MyFloatField('Operating Income / Ingresos', validators=[InputRequired()])
     p49100_plus_40800 = MyFloatField('EBITDA', validators=[InputRequired()])
     p10000 = MyFloatField('Total Assets / Total activos', validators=[InputRequired()])
@@ -291,7 +299,8 @@ def loan():
                                    rows=order_history, \
                                    message=message, \
                                    name=current_user.username, \
-                                   bank_name=BANK_NAME)
+                                   bank_name=BANK_NAME, \
+                                   cnaes=cnaes)
                 
         else:
             try: #In this case, we try to check if the user clicked to edit data of a loan
@@ -308,7 +317,8 @@ def loan():
                            rows=order_history, \
                            message=message, \
                            name=current_user.username, \
-                           bank_name=BANK_NAME)
+                           bank_name=BANK_NAME,
+                           companies=Company.query.filter_by(username=current_user.username))
 
 @app.route('/currents')
 @login_required
@@ -321,10 +331,6 @@ def currents():
 
 # %%
 ### RandomForestClassifier ----
-import numpy as np
-import pandas as pd
-from joblib import load
-
 Rating_RandomForestClassifier_model = load('./database/Rating_RandomForestClassifier.joblib') 
 scaler_concat = load('./database/scaler_concat.joblib') 
 
@@ -370,12 +376,14 @@ def company():
                               })
 
             # Apply the StandardScaler for this particular CNAE
-            X = scaler_concat[form.cnae.data].transform(X)
+            cnae_company = form.cnae.data[0]
+            X = scaler_concat[cnae_company].transform(X)
+
             # Predict the probability
             prob_default = Rating_RandomForestClassifier_model.predict_proba(X)[:,1]
         
             try: # UPDATING DATA OF AN EXISTING COMPANY
-                company = Company.query.filter(Company.username.in_([current_user.username]),Company.nif.in_([form.nif.data])).first()
+                company = Company.query.filter(Company.username.in_([current_user.username]), Company.nif.in_([form.nif.data])).first()
                 company.nif = form.nif.data
                 update_or_new = 1 # 1 for update
             except: # CREATING A NEW COMPANY
@@ -459,7 +467,8 @@ def company():
                                rows=order_history , \
                                message=message, \
                                name=current_user.username, \
-                               bank_name=BANK_NAME)
+                               bank_name=BANK_NAME, \
+                               cnaes=cnaes)
     else: # request acepted
         monthly_payment = calc_monthly_payment(loan.loan_amount, 7.5, \
                                                loan.number_of_installments)
@@ -475,7 +484,8 @@ def company():
                                rows=order_history , \
                                message=message, \
                                name=current_user.username, \
-                               bank_name=BANK_NAME)
+                               bank_name=BANK_NAME, \
+                               cnaes=cnaes)
 
 @app.route('/logout')
 @login_required
