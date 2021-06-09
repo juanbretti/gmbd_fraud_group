@@ -43,11 +43,13 @@ import math
 from datetime import datetime
 import sqlite3
 import matplotlib.pyplot as plt
+import os
 
 ## Constants ----
 BANK_NAME = 'Baniank'
 INTEREST_RATE = 7.5
 CONNECTION_STRING = './database/database.db'
+PLOT_PATH = './static/balance_plot.png'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'Thisissupposedtobesecret!'
@@ -328,7 +330,8 @@ def loan():
 @app.route('/currents')
 @login_required
 def currents():
-    order_history = Loan.query.filter_by(username=current_user.username)
+    # order_history = Loan.query.filter_by(username=current_user.username)
+    order_history = Loan.query.all()
     return render_template('currents.html', \
                             rows=order_history, \
                             name=current_user.username, \
@@ -501,16 +504,16 @@ def logout():
 # https://stackoverflow.com/questions/50728328/python-how-to-show-matplotlib-in-flask
 @app.route('/balance_plot')
 @login_required
-def make_plot():
+def balance_plot():
     cnx = sqlite3.connect(CONNECTION_STRING)   
+    # df_bank = pd.read_sql_query("SELECT * FROM bank;", cnx)
     df_loans = pd.read_sql_query("SELECT * FROM loan WHERE status='acepted';", cnx)
-    df_bank = pd.read_sql_query("SELECT * FROM bank;", cnx)
 
     payments = df_loans.assign(month = [range(x) for x in df_loans['number_of_installments']])
     payments = payments.explode('month')
     payments['month'] += 2
 
-    t0 = pd.DataFrame({'month': [0], 'monthly_payment': df_bank['bank_total_assets'].to_list(), 'source': ['Total asset']})
+    # t0 = pd.DataFrame({'month': [0], 'monthly_payment': df_bank['bank_total_assets'].to_list(), 'source': ['Total asset']})
     t1 = pd.DataFrame({'month': [1], 'monthly_payment': -df_loans['loan_amount'].sum(), 'source': ['Total loaned']})
 
     transactions = payments.groupby('month').agg({'monthly_payment': sum}).reset_index()
@@ -522,13 +525,17 @@ def make_plot():
     cum_interest = transactions['cumulative'].iloc[-1]
     cum_interest = f'{cum_interest:.2f}'
 
+    plt.figure()
     ax = transactions.plot.bar(x='month', y=['monthly_payment'], legend=False)
     transactions.plot.line(y=['cumulative'], color='red', legend=False, ax=ax)
-    plt.xlabel('Month', fontsize=16)
-    plt.ylabel('Euro', fontsize=16)
+    plt.xlabel('Month', fontsize=12)
+    plt.ylabel('Euros', fontsize=12)
+    plt.tight_layout()
     # plt.show()
-    plt.savefig('./static/balance_plot.png')
-    return render_template('balance_plot.html', page_name = 'Balance plot', url ='./static/balance_plot.png', name=current_user.username, bank_name=BANK_NAME, cum_interest=cum_interest)
+    if os.path.isfile(PLOT_PATH):
+        os.remove(PLOT_PATH)
+    plt.savefig(PLOT_PATH)
+    return render_template('balance_plot.html', plot_name='Balance plot', url=PLOT_PATH, name=current_user.username, bank_name=BANK_NAME, cum_interest=cum_interest)
 
 ##############################################################################
 #     FLASK APP ROUTE DEFITION - END                                       #

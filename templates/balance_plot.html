@@ -45,14 +45,15 @@ Current requests
         <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
           <h1 class="page-header">Welcome, {{ name }}</h1>
 
-          <h1>{{page_name}}</h1>
+          <h2>{{plot_name}}</h2>
+          <div>Expected cashflow after the loans</div>
           <img src={{url}} alt="Chart">      
 
           <br/>
           <br/>
 
-          <h1>Cumulative interest</h1>
-          <div>So far, the company had made {{cum_interest}} EUR for the loan operations.</div>
+          <h2>Cumulative interest</h2>
+          <div>{{bank_name}} expected revenue for the loan operations: <b>{{cum_interest}}<b> Euros</div>
 
         </div>
       </div>
