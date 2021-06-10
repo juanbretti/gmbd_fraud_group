@@ -54,6 +54,7 @@ PLOT_PATH = './static/balance_plot.png'
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'Thisissupposedtobesecret!'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + CONNECTION_STRING
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 bootstrap = Bootstrap(app)
 db = SQLAlchemy(app)
 login_manager = LoginManager()

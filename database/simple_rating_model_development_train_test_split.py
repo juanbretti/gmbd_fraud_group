@@ -94,7 +94,7 @@ for first in df_train['cnae_first'].unique():
     scaler_concat.update({first: encoder})
 
 # %%
-model = RandomForestClassifier(random_state=42, bootstrap=False, class_weight='balanced_subsample', n_estimators=2000, n_jobs=-1)
+model = RandomForestClassifier(random_state=42, bootstrap=False, class_weight='balanced_subsample', n_estimators=1000, n_jobs=-1)
 
 # Train
 X_train = df_concat[columns_to_scale]
@@ -107,24 +107,18 @@ y_train_pred_proba = fitted_model.predict_proba(X_train)[:,1]
 
 # %%
 # Test
-df_first = df_test[columns_to_scale+column_target+['cnae_first']].replace([np.inf, -np.inf], np.nan).dropna()  # This could be improved
+df_first = df_test[columns_to_scale+column_target+['cnae_first']]
+df_first = df_first.replace([np.inf, -np.inf], np.nan).dropna()  # This could be improved
 
 # Apply the `scaler` based on the `cnae_first`
 X_test = pd.DataFrame()
 for idx, row in df_first.iterrows():
     cnae_company = row['cnae_first']
 
-    # Workaround to fix problems at `transform()` input shape
-    X = pd.DataFrame({'ebitda_income': [row['ebitda_income']], \
-                    'debt_ebitda': [row['debt_ebitda']], \
-                    'rraa_rrpp' : [row['rraa_rrpp']], \
-                    'log_operating_income': [row['log_operating_income']], \
-                    'return_on_assets': [row['return_on_assets']],
-                    })
-
+    X = row[columns_to_scale].to_frame().T
     row_scaled = scaler_concat[cnae_company].transform(X)
+    
     X_test = X_test.append(pd.DataFrame(row_scaled, columns=columns_to_scale), ignore_index=True)
-
 
 y_test = df_first[column_target]
 
