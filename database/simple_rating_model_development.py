@@ -69,7 +69,7 @@ df = df[~df['cnae_first'].isna()]
 from sklearn.preprocessing import StandardScaler
 
 columns_to_scale = ['ebitda_income','debt_ebitda','rraa_rrpp','log_operating_income', 'return_on_assets']
-column_target = ['target_status']
+column_target = 'target_status'
 
 df_concat = pd.DataFrame()
 scaler_concat = {}
@@ -77,13 +77,13 @@ scaler_concat = {}
 for first in df['cnae_first'].unique():
     # Select X
     df_first = df[df['cnae_first']==first]
-    df_first = df_first[columns_to_scale+column_target].replace([np.inf, -np.inf], np.nan).dropna()
+    df_first = df_first[columns_to_scale+[column_target]].replace([np.inf, -np.inf], np.nan).dropna()
     # Scale X
     encoder = StandardScaler().fit(df_first[columns_to_scale])
     df_first_scaled = encoder.transform(df_first[columns_to_scale])
     df_first_scaled = pd.DataFrame(df_first_scaled, columns=columns_to_scale)
     # Add y
-    df_first_scaled[column_target] = df_first[column_target].values
+    df_first_scaled[column_target] = df_first[column_target].to_list()
     # Concat
     df_concat = df_concat.append(df_first_scaled)
     scaler_concat.update({first: encoder})
@@ -91,23 +91,25 @@ for first in df['cnae_first'].unique():
 # %%
 from sklearn.ensemble import RandomForestClassifier
 model = RandomForestClassifier(random_state=1234, bootstrap=False, class_weight='balanced_subsample')
+# model = RandomForestClassifier(random_state=42, n_estimators=1)
 
 X = df_concat[columns_to_scale]
 y = df_concat[column_target]
 
 fitted_model = model.fit(X, y)
 y_pred = fitted_model.predict(X)
-y_pred_proba = fitted_model.predict_proba(X)[:,1]
+y_pred_proba = fitted_model.predict_proba(X)
+y_pred_proba_true = y_pred_proba[:,1]
 
 # %%
 print ("ASSESSING THE MODEL...")
 # CALCULATING GINI PERFORMANCE ON DEVELOPMENT SAMPLE
 from sklearn.metrics import roc_auc_score
-gini_score = 2*roc_auc_score(y, y_pred_proba)-1
+gini_score = 2*roc_auc_score(y, y_pred_proba_true)-1
 print ("GINI DEVELOPMENT=", gini_score)
 
 from sklearn.metrics import accuracy_score
-print("Accuracy: {0}".format(accuracy_score(y_pred,y)))
+print("Accuracy: {0}".format(accuracy_score(y, y_pred)))
 
 from sklearn.metrics import confusion_matrix
 print('Confusion matrix:\n', confusion_matrix(y, y_pred))
@@ -117,18 +119,47 @@ print('Confusion matrix:\n', confusion_matrix(y, y_pred))
 # https://towardsdatascience.com/optimal-threshold-for-imbalanced-classification-5884e870c293
 import matplotlib.pyplot as plt
 import scikitplot as skplt
-y_pred_proba = fitted_model.predict_proba(X)
 skplt.metrics.plot_roc(y, y_pred_proba)
 plt.show()
 
 # %%
 print ("SAVING THE PERSISTENT MODEL...")
 from joblib import dump#, load
-dump(fitted_model, 'Rating_RandomForestClassifier.joblib') 
-dump(scaler_concat, 'scaler_concat.joblib') 
+# dump(fitted_model, 'Rating_RandomForestClassifier.joblib') 
+# dump(scaler_concat, 'scaler_concat.joblib') 
 
 # %%
+# https://stackoverflow.com/a/50380029/3780957
+# https://campus.ie.edu/webapps/discussionboard/do/message?action=list_messages&course_id=_114365970_1&nav=discussion_board_entry&conf_id=_270898_1&forum_id=_136661_1&message_id=_5285111_1
 
-#i=0
-#time_in_datetime = datetime.strptime(df.fecha_cambio_estado.iloc[i], "%Y-%m-%d)
-#    
+def fraud_cost_i(y, y_pred_proba, threshold=0.5):
+    # $cost = $100 x fn + $10 x fp + $1 x tp
+    # FN
+    if (y == 1) & (y_pred_proba < threshold):
+        cost = 100
+    # FP
+    elif (y == 0) & (y_pred_proba >= threshold):
+        cost = 10
+    # TP
+    elif (y == 1) & (y_pred_proba >= threshold):
+        cost = 1
+    # TN
+    elif (y == 0) & (y_pred_proba < threshold):
+        cost = 1
+    else:
+        cost = 0
+    return cost
+
+def fraud_cost(threshold):
+    return sum(map(fraud_cost_i, y, y_pred_proba_true, [threshold]*len(y)))
+
+space_threshold = [10**x for x in np.linspace(-10,0,100)]
+df_space = pd.DataFrame({'Threshold': space_threshold,
+                         'Cost': [fraud_cost(x) for x in space_threshold]})
+
+df_space.plot(x='Threshold', y='Cost')
+# %%
+# Minimum value of the cost
+df_space[df_space['Cost'] == min(df_space['Cost'])]
+
+# %%
