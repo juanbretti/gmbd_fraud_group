@@ -56,6 +56,7 @@ Current requests
               <th>Loan Amount / Valor del Prestámo</th>
               <th>Number of installments / Número de Pagos</th>
               <th>NIF</th>
+              <th>Client name / Nombre del cliente</th>
               <th>Username / Usuario</th>
               <th>Order Status / Estado del Pedido</th>
               <th>Date / Fecha</th>
@@ -74,9 +75,10 @@ Current requests
               <td> {{ row.loan_amount }}</td>
               <td> {{ row.number_of_installments }} </td>
               <td> {{ row.nif }} </td>
+              <td> {{ row.name }} </td>
               <td> {{ row.username }} </td>
               <td> {{ row.status }} </td>
-              <td> {{ row.data_timestamp.strftime('%Y-%m-%d at %H:%M') }} </td>
+              <td> {{ row['data_timestamp'].strftime('%Y-%m-%d at %H:%M') }} </td>
             </tr>
             {% endfor %}
           </tbody>
