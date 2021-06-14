@@ -1,4 +1,5 @@
 # %%
+# Import libraries
 import pandas as pd
 import numpy as np
 import glob
@@ -27,8 +28,11 @@ for filename in glob.glob("./Rating_*.xlsx"):
     big_df = big_df.append(df, ignore_index=True)     
 
 # %%
+# Define target variable
 df = big_df
 df['target_status'] = [0 if i in ['Activa', ''] else 1 for i in df['estado_detallado']] # 0 si Activa, 1 si algo raro!
+
+# Calculate dependent variables
 
 # _h0, _h1, _h2
 # _h0: history 0, here h0 means the year 2017 (historia 0, aquí h0 significa el año 2017)
@@ -57,28 +61,36 @@ df['rraa_rrpp'] = (df.p10000_h1 - df.p20000_h1) /df.p20000_h1
 # Log of Operating Income
 df['log_operating_income'] = np.log(df.p40100_mas_40500_h1)
 
+# Additional requirement
+# easy option) include a new ratio on the development code, fit a new model and dump it and load it in the app.py (again, this is not graded)
+
 # EBITDA / Total Assets
 # EBITDA Return on Assets
 # https://www.arborinvestmentplanner.com/return-on-total-assets-ratios-calculations/
 df['return_on_assets'] = (df.p49100_h1+df.p40800_h1) / df.p10000_h1
 
 # %%
+# Additional requirement
 # hard option) Using the first digit of CNAE as industry, apply standard scaler transformation by industry, fit a new model, dump (export) the new fitted model and also dump the standard scale transformations. Implement the new model and the standard scale transformations by industry into app.py (again, this is not graded)
 
 # Create the CNAE
 df['cnae_first'] = df['cnae'].astype(str).str[0]
 df = df[~df['cnae_first'].isna()]
 
+# Define columns to use in the model
 columns_to_scale = ['ebitda_income','debt_ebitda','rraa_rrpp','log_operating_income', 'return_on_assets']
 column_target = 'target_status'
 
-# Split
+# Split the dataset
 df_train, df_test = train_test_split(df, test_size=0.1, random_state=42, stratify=df[column_target])
 
 # %%
 df_concat = pd.DataFrame()
 scaler_concat = {}
 
+# Calculates a scaler 
+# Scaler helps to normalize the dependent variables between the different industry type `CNAE`
+# The script creates one scaler per first character of the `CNAE` code
 for first in df_train['cnae_first'].unique():
     # Select X
     df_first = df_train[df_train['cnae_first']==first]
@@ -94,6 +106,7 @@ for first in df_train['cnae_first'].unique():
     scaler_concat.update({first: encoder})
 
 # %%
+# Create the classifier model
 model = RandomForestClassifier(random_state=42, bootstrap=False, class_weight='balanced_subsample', n_estimators=100, n_jobs=-1)
 
 # Train
@@ -147,7 +160,6 @@ print(classification_report(y_test, y_test_pred))
 # https://towardsdatascience.com/optimal-threshold-for-imbalanced-classification-5884e870c293
 import matplotlib.pyplot as plt
 import scikitplot as skplt
-y_test_pred_proba = fitted_model.predict_proba(X_test)
 skplt.metrics.plot_roc(y_test, y_test_pred_proba)
 plt.show()
 
@@ -158,17 +170,17 @@ from joblib import dump#, load
 # dump(scaler_concat, 'scaler_concat.joblib') 
 
 # %%
+# Calculate the cost per approval
 # https://stackoverflow.com/a/50380029/3780957
 # https://campus.ie.edu/webapps/discussionboard/do/message?action=list_messages&course_id=_114365970_1&nav=discussion_board_entry&conf_id=_270898_1&forum_id=_136661_1&message_id=_5285111_1
 
-def fraud_cost_i(y, y_pred_proba, threshold=0.5):
-    # $cost = $100 x fn + $10 x fp + $1 x tp
+def approval_cost_i(y, y_pred_proba, threshold=0.5):
     # FN
     if (y == 1) & (y_pred_proba < threshold):
-        cost = 100
+        cost = 100 # I will loose the interests from the operation
     # FP
     elif (y == 0) & (y_pred_proba >= threshold):
-        cost = 10
+        cost = 10 # I could loose the loaned capital, the insurance will kick in. $10 is the cost of the insurance.
     # TP
     elif (y == 1) & (y_pred_proba >= threshold):
         cost = 1
@@ -179,16 +191,16 @@ def fraud_cost_i(y, y_pred_proba, threshold=0.5):
         cost = 0
     return cost
 
-def fraud_cost(threshold):
-    return sum(map(fraud_cost_i, y_test, y_test_pred_proba_true, [threshold]*len(y_test)))
+def approval_cost(threshold):
+    return sum(map(approval_cost_i, y_test, y_test_pred_proba_true, [threshold]*len(y_test)))
 
 space_threshold = [10**x for x in np.linspace(-10,0,100)]
 df_space = pd.DataFrame({'Threshold': space_threshold,
-                         'Cost': [fraud_cost(x) for x in space_threshold]})
+                         'Cost': [approval_cost(x) for x in space_threshold]})
 
 df_space.plot(x='Threshold', y='Cost')
 # %%
-# Minimum value of the cost
+# Minimum value of the cost, to define the threshold
 df_space[df_space['Cost'] == min(df_space['Cost'])]
 
 # %%

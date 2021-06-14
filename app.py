@@ -302,6 +302,7 @@ def loan():
                                 number_of_installments = form.number_of_installments.data)                      
                 message = ''                    
             # order_history = Loan.query.filter_by(username=current_user.username)
+            # The `order_history` includes the `Company` information, including the company name
             order_history = db.session.query(*Loan.__table__.columns + Company.__table__.columns).join(Company, Loan.nif == Company.nif).filter_by(username=current_user.username)
 
             return render_template('company.html', form=form, \
@@ -333,8 +334,11 @@ def loan():
 @app.route('/currents')
 @login_required
 def currents():
+    # The following, lists all the `Loans`, only for the current user
     # order_history = Loan.query.filter_by(username=current_user.username)
+    # The following, lists all the `Loans`, without any filter 
     # order_history = Loan.query.all()
+    # The `order_history` includes the `Company` information, including the company name
     order_history = db.session.query(*Loan.__table__.columns + Company.__table__.columns).join(Company, Loan.nif == Company.nif).all()
 
     return render_template('currents.html', \
@@ -460,7 +464,7 @@ def company():
 
         if limite_acepted - used_amount < order.loan_amount:
             automated_decision = 'rejected'
-        elif prob_default > bank.prob_default:
+        elif prob_default > bank.prob_default:  # The probability of default accepted by the bank, is stored in the database, in the table `bank`
             automated_decision = 'rejected'
         
         try:
@@ -508,6 +512,7 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+# The following page, creates a plot of the current balance for the bank
 # https://stackoverflow.com/questions/50728328/python-how-to-show-matplotlib-in-flask
 @app.route('/balance_plot')
 @login_required
@@ -550,6 +555,7 @@ def balance_plot():
 
 # %%
 ## Main ----
+# Run the application
 if __name__ == '__main__':
     app.run(debug=True)
 

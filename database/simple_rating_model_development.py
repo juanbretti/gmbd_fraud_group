@@ -1,7 +1,10 @@
 # %%
+# Import libraries
 import pandas as pd
 import numpy as np
 import glob
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
 
 # %%
 #... READING ALL DATA FRAMES
@@ -24,8 +27,11 @@ for filename in glob.glob("./Rating_*.xlsx"):
     big_df = big_df.append(df, ignore_index=True)     
 
 # %%
+# Define target variable
 df = big_df
 df['target_status'] = [0 if i in ['Activa', ''] else 1 for i in df['estado_detallado']] # 0 si Activa, 1 si algo raro!
+
+# Calculate dependent variables
 
 # _h0, _h1, _h2
 # _h0: history 0, here h0 means the year 2017 (historia 0, aquí h0 significa el año 2017)
@@ -54,31 +60,38 @@ df['rraa_rrpp'] = (df.p10000_h1 - df.p20000_h1) /df.p20000_h1
 # Log of Operating Income
 df['log_operating_income'] = np.log(df.p40100_mas_40500_h1)
 
+# Additional requirement
+# easy option) include a new ratio on the development code, fit a new model and dump it and load it in the app.py (again, this is not graded)
+
 # EBITDA / Total Assets
 # EBITDA Return on Assets
 # https://www.arborinvestmentplanner.com/return-on-total-assets-ratios-calculations/
 df['return_on_assets'] = (df.p49100_h1+df.p40800_h1) / df.p10000_h1
 
 # %%
+# Additional requirement
 # hard option) Using the first digit of CNAE as industry, apply standard scaler transformation by industry, fit a new model, dump (export) the new fitted model and also dump the standard scale transformations. Implement the new model and the standard scale transformations by industry into app.py (again, this is not graded)
 
 # Create the CNAE
 df['cnae_first'] = df['cnae'].astype(str).str[0]
 df = df[~df['cnae_first'].isna()]
 
-from sklearn.preprocessing import StandardScaler
-
+# Define columns to use in the model
 columns_to_scale = ['ebitda_income','debt_ebitda','rraa_rrpp','log_operating_income', 'return_on_assets']
 column_target = 'target_status'
 
 df_concat = pd.DataFrame()
 scaler_concat = {}
 
+# Calculates a scaler 
+# Scaler helps to normalize the dependent variables between the different industry type (CNAE)
+# The script creates one scaler per first character of the CNAE code
 for first in df['cnae_first'].unique():
     # Select X
     df_first = df[df['cnae_first']==first]
     df_first = df_first[columns_to_scale+[column_target]].replace([np.inf, -np.inf], np.nan).dropna()
     # Scale X
+    # Scaler is not mandatory, because we are using a RandomForest, but helps to the interpretability
     encoder = StandardScaler().fit(df_first[columns_to_scale])
     df_first_scaled = encoder.transform(df_first[columns_to_scale])
     df_first_scaled = pd.DataFrame(df_first_scaled, columns=columns_to_scale)
@@ -89,9 +102,8 @@ for first in df['cnae_first'].unique():
     scaler_concat.update({first: encoder})
 
 # %%
-from sklearn.ensemble import RandomForestClassifier
-model = RandomForestClassifier(random_state=1234, bootstrap=False, class_weight='balanced_subsample')
-# model = RandomForestClassifier(random_state=42, n_estimators=1)
+# Create the classifier model
+model = RandomForestClassifier(random_state=42, bootstrap=False, class_weight='balanced_subsample')
 
 X = df_concat[columns_to_scale]
 y = df_concat[column_target]
@@ -127,39 +139,5 @@ print ("SAVING THE PERSISTENT MODEL...")
 from joblib import dump#, load
 # dump(fitted_model, 'Rating_RandomForestClassifier.joblib') 
 # dump(scaler_concat, 'scaler_concat.joblib') 
-
-# %%
-# https://stackoverflow.com/a/50380029/3780957
-# https://campus.ie.edu/webapps/discussionboard/do/message?action=list_messages&course_id=_114365970_1&nav=discussion_board_entry&conf_id=_270898_1&forum_id=_136661_1&message_id=_5285111_1
-
-def fraud_cost_i(y, y_pred_proba, threshold=0.5):
-    # $cost = $100 x fn + $10 x fp + $1 x tp
-    # FN
-    if (y == 1) & (y_pred_proba < threshold):
-        cost = 100
-    # FP
-    elif (y == 0) & (y_pred_proba >= threshold):
-        cost = 10
-    # TP
-    elif (y == 1) & (y_pred_proba >= threshold):
-        cost = 1
-    # TN
-    elif (y == 0) & (y_pred_proba < threshold):
-        cost = 1
-    else:
-        cost = 0
-    return cost
-
-def fraud_cost(threshold):
-    return sum(map(fraud_cost_i, y, y_pred_proba_true, [threshold]*len(y)))
-
-space_threshold = [10**x for x in np.linspace(-10,0,100)]
-df_space = pd.DataFrame({'Threshold': space_threshold,
-                         'Cost': [fraud_cost(x) for x in space_threshold]})
-
-df_space.plot(x='Threshold', y='Cost')
-# %%
-# Minimum value of the cost
-df_space[df_space['Cost'] == min(df_space['Cost'])]
 
 # %%
