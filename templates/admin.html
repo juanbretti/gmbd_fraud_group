@@ -2,7 +2,7 @@
 {% import "bootstrap/wtf.html" as wtf %}
 
 {% block title %}
-Current requests
+Administrator
 {% endblock %}
 
 {% block styles %}
@@ -11,7 +11,6 @@ Current requests
 {% endblock %}
 
 {% block content %}
-
 <nav class="navbar navbar-inverse navbar-fixed-top">
   <div class="container-fluid">
     <div class="navbar-header">
@@ -39,7 +38,7 @@ Current requests
     <div class="col-sm-3 col-md-2 sidebar">
       <ul class="nav nav-sidebar">
         <li class="inactive"><a href="/loan">Loan Request<span class="sr-only">(current)</span></a></li>
-        <li class="active"><a href="/currents">Current Requests<span class="sr-only">(current)</span></a></li>
+        <li class="inactive"><a href="/currents">Current Requests<span class="sr-only">(current)</span></a></li>
         <li class="inactive"><a href="/balance_plot">Balance Plot<span class="sr-only">(current)</span></a></li>
       </ul>
       <div style="position: absolute; bottom: 20px;"><img src="{{url_for('.static', filename='ka-complete.png')}}"
@@ -48,43 +47,38 @@ Current requests
     <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
       <h1 class="page-header">Welcome, {{ name }}</h1>
 
-      <h2 class="sub-header">Current requests by all the users:</h2>
-      <div class="table-responsive">
-        <table id="myTable" class="table table-striped">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Loan Amount / Valor del Prestámo</th>
-              <th>Number of installments / Número de Pagos</th>
-              <th>NIF</th>
-              <th>Client name / Nombre del cliente</th>
-              <th>Username / Usuario</th>
-              <th>Order Status / Estado del Pedido</th>
-              <th>Date / Fecha</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in rows %}
-            <tr>
+      <form class="form-signin" method="POST" action="/admin">
+        <h2 class="form-signin-heading">Administration / Administración:</h2>
+        {{ form.hidden_tag() }}
+        {{ wtf.form_field(form.name) }}
+        {{ wtf.form_field(form.bank_total_assets) }}
+        {{ wtf.form_field(form.prob_default) }}
+        {{ wtf.form_field(form.interest_rate) }}
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Update</button>
+      </form>
 
-              <td><a>
-                  <form action="/loan" method="POST">
-                    <input type="hidden" id="rowid" name="rowid" value={{ row.Loan.id }}>
-                    <input type="submit" value={{ row.Loan.id }}>
-                  </form>
-                </a></td>
-              <td> {{ row.Loan.loan_amount }}</td>
-              <td> {{ row.Loan.number_of_installments }} </td>
-              <td> {{ row.Loan.nif }} </td>
-              <td> {{ row.Company.name }} </td>
-              <td> {{ row.Loan.username }} </td>
-              <td> {{ row.Loan.status }} </td>
-              <td> {{ row.Loan.data_timestamp.strftime('%Y-%m-%d at %H:%M') }} </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+      {% if message == '' %}
+      {% else %}
+      <h2> {{ message }} </h2>
+      {% endif %}
+      
+      <br />
+      <br />
+
+      <h2>Threshold optimization plot</h2>
+      <div>The following plot helps to determine the optimal risk acceptance threshold. 
+        The minimum threshold is located at <b>{{'%0.2f'|format(min_threshold['Threshold']|float)}}</b>.</div>
+      <img src={{plot_threshold}} alt="Chart">
+
+      <br />
+      <div>* Values are simulated</div>
+      
+      <br />
+      <br />
+
+      <h2>Receiver operating characteristic plot</h2>
+      <div>A <i>ROC</i> curve, is a graphical plot that illustrates the diagnostic ability of a binary classifier system as its discrimination threshold is varied.</div>
+      <img src={{plot_roc}} alt="Chart">
 
 
     </div>

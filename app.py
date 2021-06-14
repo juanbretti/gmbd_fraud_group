@@ -46,10 +46,10 @@ import matplotlib.pyplot as plt
 import os
 
 ## Constants ----
-BANK_NAME = 'Baniank'
-INTEREST_RATE = 7.5
 CONNECTION_STRING = './database/database.db'
-PLOT_PATH = './static/balance_plot.png'
+PLOT_PATH_BALANCE = './static/plot_balance.png'
+PLOT_PATH_ROC = './static/plot_roc.png'
+PLOT_PATH_THRESHOLD = './static/plot_threshold.png'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'Thisissupposedtobesecret!'
@@ -101,14 +101,16 @@ class MyFloatField(FloatField):
 # SQLAlchemy ORM class for Bank
 class Bank(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True)
     bank_total_assets = db.Column(db.Float,default=2000000.0)
     bank_total_borrowed = db.Column(db.Float,default=0.0)
     coef_own_capital = db.Column(db.Float,default=10.0)
     coef_ebitda = db.Column(db.Float,default=33.0)
     coef_concentration = db.Column(db.Float,default=5.0)
     prob_default = db.Column(db.Float,default=0.5)
+    interest_rate = db.Column(db.Float,default=7.5)
 
-bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
+# bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
 
 # SQLAlchemy ORM class for users
 class User(UserMixin, db.Model):
@@ -194,6 +196,17 @@ class CompanyForm(FlaskForm):
     p20000 = MyFloatField('Own Capital / Patrimonio neto', validators=[InputRequired()])
     p31200_plus_32300 = MyFloatField('Total Debt / Deuda total', validators=[InputRequired()])
 
+class BankForm(FlaskForm):
+    # id = db.Column(db.Integer, primary_key=True)
+    name = StringField('Bank name / Nombre del banco', validators=[InputRequired()])
+    bank_total_assets = MyFloatField('Total Assets / Activo Total', validators=[InputRequired()])
+    bank_total_borrowed = MyFloatField('Total Borrowed / Total Prestado')
+    coef_own_capital = MyFloatField('Own Capital / Capital Propiedad')
+    coef_ebitda = MyFloatField('EBITDA')
+    coef_concentration = MyFloatField('Concentration / Concentración')
+    prob_default = MyFloatField('Default Probability / Probabilidad de Default', validators=[InputRequired()])
+    interest_rate = MyFloatField('Interest Rate / Tasa de interés', validators=[InputRequired()])
+
 ##############################################################################
 #     FlaskForm classes - END                                                #
 ##############################################################################
@@ -212,7 +225,7 @@ def load_user(user_id):
     
 @app.route('/')
 def index():
-    return render_template('index.html', bank_name=BANK_NAME)
+    return render_template('index.html', bank_name=bank.name)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -227,7 +240,7 @@ def login():
 
         message = 'Invalid username or password'
 
-    return render_template('login.html', form=form, message=message, bank_name=BANK_NAME)
+    return render_template('login.html', form=form, message=message, bank_name=bank.name)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -240,12 +253,13 @@ def signup():
         db.session.commit()
         message='New user has been created!'
         form = LoginForm()
-        return render_template('login.html', form=form, message=message, bank_name=BANK_NAME)
-    return render_template('signup.html', form=form, message=message, bank_name=BANK_NAME)
+        return render_template('login.html', form=form, message=message, bank_name=bank.name)
+    return render_template('signup.html', form=form, message=message, bank_name=bank.name)
 
 @app.route('/loan', methods=['GET', 'POST'])
 @login_required
 def loan():
+    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     form = LoanForm()
     message = ''
     if request.method == 'POST':
@@ -309,7 +323,7 @@ def loan():
                                    rows=order_history, \
                                    message=message, \
                                    name=current_user.username, \
-                                   bank_name=BANK_NAME, \
+                                   bank_name=bank.name, \
                                    cnaes=cnaes)
                 
         else:
@@ -328,12 +342,13 @@ def loan():
                            rows=order_history, \
                            message=message, \
                            name=current_user.username, \
-                           bank_name=BANK_NAME,
+                           bank_name=bank.name,
                            companies=Company.query.filter_by(username=current_user.username))
 
 @app.route('/currents')
 @login_required
 def currents():
+    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     # The following, lists all the `Loans`, only for the current user
     # order_history = Loan.query.filter_by(username=current_user.username)
     # The following, lists all the `Loans`, without any filter 
@@ -344,7 +359,7 @@ def currents():
     return render_template('currents.html', \
                             rows=order_history, \
                             name=current_user.username, \
-                            bank_name=BANK_NAME)
+                            bank_name=bank.name)
 
 # %%
 ### RandomForestClassifier ----
@@ -354,6 +369,7 @@ scaler_concat = load('./database/scaler_concat.joblib')
 @app.route('/company', methods=['GET', 'POST'])
 @login_required
 def company(): 
+    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     form = CompanyForm()
     message = ''
     automated_decision = 'rejected'
@@ -485,10 +501,10 @@ def company():
                                rows=order_history , \
                                message=message, \
                                name=current_user.username, \
-                               bank_name=BANK_NAME, \
+                               bank_name=bank.name, \
                                cnaes=cnaes)
     else: # request acepted
-        monthly_payment = calc_monthly_payment(loan.loan_amount, INTEREST_RATE, \
+        monthly_payment = calc_monthly_payment(loan.loan_amount, bank.interest_rate, \
                                                loan.number_of_installments)
         message = 'Congratulations, your loan has been accepted and with a monthly payment of: %.2f'% \
         (monthly_payment) + " €"
@@ -503,7 +519,7 @@ def company():
                                rows=order_history , \
                                message=message, \
                                name=current_user.username, \
-                               bank_name=BANK_NAME, \
+                               bank_name=bank.name, \
                                cnaes=cnaes)
 
 @app.route('/logout')
@@ -517,6 +533,8 @@ def logout():
 @app.route('/balance_plot')
 @login_required
 def balance_plot():
+    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
+
     cnx = sqlite3.connect(CONNECTION_STRING)   
     # df_bank = pd.read_sql_query("SELECT * FROM bank;", cnx)
     df_loans = pd.read_sql_query("SELECT * FROM loan WHERE status='acepted';", cnx)
@@ -544,10 +562,84 @@ def balance_plot():
     plt.ylabel('Euros', fontsize=12)
     plt.tight_layout()
     # plt.show()
-    if os.path.isfile(PLOT_PATH):
-        os.remove(PLOT_PATH)
-    plt.savefig(PLOT_PATH)
-    return render_template('balance_plot.html', plot_name='Balance plot', url=PLOT_PATH, name=current_user.username, bank_name=BANK_NAME, cum_interest=cum_interest)
+    if os.path.isfile(PLOT_PATH_BALANCE):
+        os.remove(PLOT_PATH_BALANCE)
+    plt.savefig(PLOT_PATH_BALANCE)
+    return render_template('balance_plot.html', plot_name='Balance plot', url=PLOT_PATH_BALANCE, name=current_user.username, bank_name=bank.name, cum_interest=cum_interest)
+
+def approval_cost_i(y, y_pred_proba, threshold=0.5):
+    # FN
+    if (y == 1) & (y_pred_proba < threshold):
+        cost = 100 # I will loose the interests from the operation
+    # FP
+    elif (y == 0) & (y_pred_proba >= threshold):
+        cost = 10 # I could loose the loaned capital, the insurance will kick in. $10 is the cost of the insurance.
+    # TP
+    elif (y == 1) & (y_pred_proba >= threshold):
+        cost = 1
+    # TN
+    elif (y == 0) & (y_pred_proba < threshold):
+        cost = 1
+    else:
+        cost = 0
+    return cost
+
+def approval_cost(y_test, y_test_pred_proba_true, threshold):
+    return sum(map(approval_cost_i, y_test, y_test_pred_proba_true, [threshold]*len(y_test)))
+
+@app.route('/admin', methods=['GET', 'POST'])
+def admin():
+    form = BankForm()
+    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
+
+    if form.validate_on_submit():
+        Bank.query.filter_by(id=1).update({'name': form.name.data, 'bank_total_assets': form.bank_total_assets.data, 'prob_default': form.prob_default.data, 'interest_rate': form.interest_rate.data})
+        db.session.commit()
+
+        form = BankForm(name = form.name.data, \
+                        bank_total_assets = form.bank_total_assets.data, \
+                        prob_default = form.prob_default.data, \
+                        interest_rate = form.interest_rate.data)                      
+        message='Information updated!'
+    
+    else:
+        form = BankForm(name = bank.name, \
+                        bank_total_assets = bank.bank_total_assets, \
+                        prob_default = bank.prob_default, \
+                        interest_rate = bank.interest_rate)    
+        message=''
+
+    y_values = load('./database/y_values.joblib') 
+    # y_values['y']
+    # y_values['y_pred_proba']
+
+    # ROC
+    import matplotlib.pyplot as plt
+    import scikitplot as skplt
+    skplt.metrics.plot_roc(y_values['y'], y_values['y_pred_proba'])
+    plt.axvline(x=bank.prob_default)
+    if os.path.isfile(PLOT_PATH_ROC):
+        os.remove(PLOT_PATH_ROC)
+    plt.savefig(PLOT_PATH_ROC)
+
+    # Threshold definition
+    space_threshold = [10**x for x in np.linspace(-10,0,100)]
+    df_space = pd.DataFrame({'Threshold': space_threshold,
+                            'Cost': [approval_cost(y_values['y'], y_values['y_pred_proba'][:,1], x) for x in space_threshold]})
+
+    min_threshold = df_space[df_space['Cost'] == min(df_space['Cost'])]
+
+    df_space.plot(x='Threshold', y='Cost', color='red', legend=False)
+    plt.xlabel('Threshold', fontsize=12)
+    plt.ylabel('Euros', fontsize=12)
+    plt.tight_layout()
+    plt.axvline(x=min_threshold['Threshold'].values[0])
+    if os.path.isfile(PLOT_PATH_THRESHOLD):
+        os.remove(PLOT_PATH_THRESHOLD)
+    plt.savefig(PLOT_PATH_THRESHOLD)
+
+
+    return render_template('admin.html', form=form, message=message, bank=bank, bank_name=bank.name, name=current_user.username, plot_roc=PLOT_PATH_ROC, plot_threshold=PLOT_PATH_THRESHOLD, min_threshold=min_threshold)
 
 ##############################################################################
 #     FLASK APP ROUTE DEFITION - END                                       #

@@ -22,11 +22,12 @@ Request your loan
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <img src="{{url_for('.static', filename='logo.png')}}" alt="Baniank logo" height="40">
+      <img src="{{url_for('.static', filename='logo.png')}}" alt="{{bank_name}} logo" height="40">
       <div class="navbar-brand">{{bank_name}}</div>
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav navbar-right">
+        <li><a href="{{ url_for('admin') }}">Administration</a></li>
         <li><a href="{{ url_for('logout') }}">Log Out</a></li>
       </ul>
     </div>

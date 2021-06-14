@@ -1,7 +1,7 @@
 {% extends "bootstrap/base.html" %}
 
 {% block title %}
-Baniank loan manager
+{{bank_name}} loan manager
 {% endblock %}
 
 {% block styles %}
@@ -20,7 +20,7 @@ Baniank loan manager
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <img src="{{url_for('.static', filename='logo.png')}}" alt="Baniank logo" height="40">
+      <img src="{{url_for('.static', filename='logo.png')}}" alt="{{bank_name}} logo" height="40">
       <div class="navbar-brand">{{bank_name}}</div>
     </div>
     <div id="navbar" class="collapse navbar-collapse">
@@ -36,9 +36,9 @@ Baniank loan manager
 <div class="container">
 
   <div class="starter-template">
-    <h1>Baniank loan manager</h1>
+    <h1>{{bank_name}} loan manager</h1>
     <p class="lead">This application manage the corporate loans by calculating the probability of default.<br>Also keeps
-      track of the amount loaned by <b>Baniank</b>.</p>
+      track of the amount loaned by <b>{{bank_name}}</b>.</p>
   </div>
 
 </div><!-- /.container -->

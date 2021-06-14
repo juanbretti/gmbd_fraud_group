@@ -161,13 +161,17 @@ print(classification_report(y_test, y_test_pred))
 import matplotlib.pyplot as plt
 import scikitplot as skplt
 skplt.metrics.plot_roc(y_test, y_test_pred_proba)
+plt.axvline(x=0.4)
 plt.show()
 
 # %%
 print ("SAVING THE PERSISTENT MODEL...")
-from joblib import dump#, load
-# dump(fitted_model, 'Rating_RandomForestClassifier.joblib') 
-# dump(scaler_concat, 'scaler_concat.joblib') 
+from joblib import dump, load
+
+dump(fitted_model, 'Rating_RandomForestClassifier.joblib') 
+dump(scaler_concat, 'scaler_concat.joblib') 
+dump({'y': y_test,  'y_pred_proba': y_test_pred_proba}, 'y_values.joblib') 
+
 
 # %%
 # Calculate the cost per approval
