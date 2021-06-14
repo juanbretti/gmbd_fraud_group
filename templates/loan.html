@@ -89,18 +89,18 @@ Request your loan
             <tr>
 
               <td> <a>
-                  <form action="/loan" method="POST">
-                    <input type="hidden" id="rowid" name="rowid" value={{ row.id }}>
-                    <input type="submit" value={{ row.id }}>
-                  </form>
-                </a></td>
-              <td> {{ row.loan_amount }}</td>
-              <td> {{ row.number_of_installments }} </td>
-              <td> {{ row.nif }} </td>
-              <td> {{ row.name }} </td>
-              <td> {{ row.username }} </td>
-              <td> {{ row.status }} </td>
-              <td> {{ row.data_timestamp.strftime('%Y-%m-%d at %H:%M') }} </td>
+                <form action="/loan" method="POST">
+                  <input type="hidden" id="rowid" name="rowid" value={{ row.Loan.id }}>
+                  <input type="submit" value={{ row.Loan.id }}>
+                </form>
+              </a></td>
+            <td> {{ row.Loan.loan_amount }}</td>
+            <td> {{ row.Loan.number_of_installments }} </td>
+            <td> {{ row.Loan.nif }} </td>
+            <td> {{ row.Company.name }} </td>
+            <td> {{ row.Loan.username }} </td>
+            <td> {{ row.Loan.status }} </td>
+            <td> {{ row.Loan.data_timestamp.strftime('%Y-%m-%d at %H:%M') }} </td>
             </tr>
             {% endfor %}
           </tbody>
