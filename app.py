@@ -45,6 +45,9 @@ import sqlite3
 import matplotlib.pyplot as plt
 import os
 
+import matplotlib.pyplot as plt
+import scikitplot as skplt
+
 ## Constants ----
 CONNECTION_STRING = './database/database.db'
 PLOT_PATH_BALANCE = './static/plot_balance.png'
@@ -109,8 +112,6 @@ class Bank(UserMixin, db.Model):
     coef_concentration = db.Column(db.Float,default=5.0)
     prob_default = db.Column(db.Float,default=0.5)
     interest_rate = db.Column(db.Float,default=7.5)
-
-# bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
 
 # SQLAlchemy ORM class for users
 class User(UserMixin, db.Model):
@@ -225,10 +226,12 @@ def load_user(user_id):
     
 @app.route('/')
 def index():
+    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     return render_template('index.html', bank_name=bank.name)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     form = LoginForm()
     message=''
     if form.validate_on_submit():
@@ -244,6 +247,7 @@ def login():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     form = RegisterForm()
     message=''
     if form.validate_on_submit():
@@ -587,6 +591,9 @@ def approval_cost_i(y, y_pred_proba, threshold=0.5):
 def approval_cost(y_test, y_test_pred_proba_true, threshold):
     return sum(map(approval_cost_i, y_test, y_test_pred_proba_true, [threshold]*len(y_test)))
 
+# Load `y_values` from the `training` process
+y_values = load('./database/y_values.joblib') 
+
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     form = BankForm()
@@ -609,13 +616,7 @@ def admin():
                         interest_rate = bank.interest_rate)    
         message=''
 
-    y_values = load('./database/y_values.joblib') 
-    # y_values['y']
-    # y_values['y_pred_proba']
-
     # ROC
-    import matplotlib.pyplot as plt
-    import scikitplot as skplt
     skplt.metrics.plot_roc(y_values['y'], y_values['y_pred_proba'])
     plt.axvline(x=bank.prob_default)
     if os.path.isfile(PLOT_PATH_ROC):

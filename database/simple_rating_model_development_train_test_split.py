@@ -172,6 +172,9 @@ dump(fitted_model, 'Rating_RandomForestClassifier.joblib')
 dump(scaler_concat, 'scaler_concat.joblib') 
 dump({'y': y_test,  'y_pred_proba': y_test_pred_proba}, 'y_values.joblib') 
 
+# y_values = load('y_values.joblib') 
+# y_values['y'].to_list()
+# y_values['y_pred_proba']
 
 # %%
 # Calculate the cost per approval

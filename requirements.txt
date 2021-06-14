@@ -6,3 +6,4 @@ email_validator
 scikit-learn==0.21.3
 scikit-plot
 ipykernel
+pandas==1.2.3
