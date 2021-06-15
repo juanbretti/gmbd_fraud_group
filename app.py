@@ -113,6 +113,8 @@ class Bank(UserMixin, db.Model):
     prob_default = db.Column(db.Float,default=0.5)
     interest_rate = db.Column(db.Float,default=7.5)
 
+bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
+
 # SQLAlchemy ORM class for users
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -226,12 +228,10 @@ def load_user(user_id):
     
 @app.route('/')
 def index():
-    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     return render_template('index.html', bank_name=bank.name)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     form = LoginForm()
     message=''
     if form.validate_on_submit():
@@ -247,7 +247,6 @@ def login():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     form = RegisterForm()
     message=''
     if form.validate_on_submit():
@@ -263,7 +262,6 @@ def signup():
 @app.route('/loan', methods=['GET', 'POST'])
 @login_required
 def loan():
-    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     form = LoanForm()
     message = ''
     if request.method == 'POST':
@@ -321,7 +319,7 @@ def loan():
                 message = ''                    
             # order_history = Loan.query.filter_by(username=current_user.username)
             # The `order_history` includes the `Company` information, including the company name
-            order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).all()
+            order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter_by(username=current_user.username)
 
             return render_template('company.html', form=form, \
                                    rows=order_history, \
@@ -341,7 +339,7 @@ def loan():
                 pass
     # RETRIEVING HISTORICAL DATA FOR ORDERS
     # order_history = Loan.query.filter_by(username=current_user.username)
-    order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).all()
+    order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter_by(username=current_user.username)
     return render_template('loan.html', form=form, \
                            rows=order_history, \
                            message=message, \
@@ -352,7 +350,6 @@ def loan():
 @app.route('/currents')
 @login_required
 def currents():
-    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     # The following, lists all the `Loans`, only for the current user
     # order_history = Loan.query.filter_by(username=current_user.username)
     # The following, lists all the `Loans`, without any filter 
@@ -373,7 +370,6 @@ scaler_concat = load('./database/scaler_concat.joblib')
 @app.route('/company', methods=['GET', 'POST'])
 @login_required
 def company(): 
-    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
     form = CompanyForm()
     message = ''
     automated_decision = 'rejected'
@@ -499,7 +495,7 @@ def company():
     if automated_decision == 'rejected':
         message = 'Sorry, your loan has been rejected for Risks.'
         # order_history = Loan.query.filter_by(username=current_user.username)
-        order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).all()
+        order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter_by(username=current_user.username)
         order.status = 'rejected'
         return render_template('company.html', form=form, \
                                rows=order_history , \
@@ -518,7 +514,7 @@ def company():
         db.session.commit()            
 
         # order_history = Loan.query.filter_by(username=current_user.username)   
-        order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).all()
+        order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter_by(username=current_user.username)
         return render_template('company.html', form=form, \
                                rows=order_history , \
                                message=message, \
@@ -537,8 +533,6 @@ def logout():
 @app.route('/balance_plot')
 @login_required
 def balance_plot():
-    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
-
     cnx = sqlite3.connect(CONNECTION_STRING)   
     # df_bank = pd.read_sql_query("SELECT * FROM bank;", cnx)
     df_loans = pd.read_sql_query("SELECT * FROM loan WHERE status='acepted';", cnx)
@@ -597,11 +591,14 @@ y_values = load('./database/y_values.joblib')
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     form = BankForm()
-    bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
 
     if form.validate_on_submit():
         Bank.query.filter_by(id=1).update({'name': form.name.data, 'bank_total_assets': form.bank_total_assets.data, 'prob_default': form.prob_default.data, 'interest_rate': form.interest_rate.data})
         db.session.commit()
+
+        # Modify the global variable
+        global bank
+        bank = Bank.query.filter_by(id=1).first() #Loading the first line of Bank dataset to be the bank object.
 
         form = BankForm(name = form.name.data, \
                         bank_total_assets = form.bank_total_assets.data, \
@@ -616,13 +613,6 @@ def admin():
                         interest_rate = bank.interest_rate)    
         message=''
 
-    # ROC
-    skplt.metrics.plot_roc(y_values['y'], y_values['y_pred_proba'])
-    plt.axvline(x=bank.prob_default)
-    if os.path.isfile(PLOT_PATH_ROC):
-        os.remove(PLOT_PATH_ROC)
-    plt.savefig(PLOT_PATH_ROC)
-
     # Threshold definition
     space_threshold = [10**x for x in np.linspace(-10,0,100)]
     df_space = pd.DataFrame({'Threshold': space_threshold,
@@ -630,15 +620,24 @@ def admin():
 
     min_threshold = df_space[df_space['Cost'] == min(df_space['Cost'])]
 
-    df_space.plot(x='Threshold', y='Cost', color='red', legend=False)
+    # Optimal value
+    df_space.plot(x='Threshold', y='Cost', color='green', legend=False)
     plt.xlabel('Threshold', fontsize=12)
     plt.ylabel('Euros', fontsize=12)
     plt.tight_layout()
-    plt.axvline(x=min_threshold['Threshold'].values[0])
+    plt.axvline(x=min_threshold['Threshold'].values[0], color='grey')
+    plt.axvline(x=bank.prob_default, color='red')
     if os.path.isfile(PLOT_PATH_THRESHOLD):
         os.remove(PLOT_PATH_THRESHOLD)
     plt.savefig(PLOT_PATH_THRESHOLD)
 
+    # ROC
+    skplt.metrics.plot_roc(y_values['y'], y_values['y_pred_proba'])
+    plt.axvline(x=min_threshold['Threshold'].values[0], color='grey')
+    plt.axvline(x=bank.prob_default, color='red')
+    if os.path.isfile(PLOT_PATH_ROC):
+        os.remove(PLOT_PATH_ROC)
+    plt.savefig(PLOT_PATH_ROC)
 
     return render_template('admin.html', form=form, message=message, bank=bank, bank_name=bank.name, name=current_user.username, plot_roc=PLOT_PATH_ROC, plot_threshold=PLOT_PATH_THRESHOLD, min_threshold=min_threshold)
 
