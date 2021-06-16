@@ -621,7 +621,7 @@ def admin():
     min_threshold = df_space[df_space['Cost'] == min(df_space['Cost'])]
 
     # Optimal value
-    df_space.plot(x='Threshold', y='Cost', color='green', legend=False)
+    df_space.plot(x='Threshold', y='Cost', color='fuchsia', legend=False)
     plt.xlabel('Threshold', fontsize=12)
     plt.ylabel('Euros', fontsize=12)
     plt.tight_layout()
