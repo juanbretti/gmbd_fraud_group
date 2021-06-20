@@ -296,7 +296,8 @@ def loan():
                                  
             try:
 #                return("loan post - no form - 5.1")
-                company = Company.query.filter(Company.username.in_([current_user.username]),Company.nif.in_([form.nif.data])).first()
+                # company = Company.query.filter(Company.username.in_([current_user.username]),Company.nif.in_([form.nif.data])).first()
+                company = Company.query.filter(Company.nif.in_([form.nif.data])).first()
 #                return("loan post - no form - 5.2: "+str(company.name))
                 form = CompanyForm(orderid=str(rowid), \
                                 nif = company.nif, \
@@ -317,9 +318,8 @@ def loan():
                                 loan_amount = form.loan_amount.data, \
                                 number_of_installments = form.number_of_installments.data)                      
                 message = ''                    
-            # order_history = Loan.query.filter_by(username=current_user.username)
             # The `order_history` includes the `Company` information, including the company name
-            order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter_by(username=current_user.username)
+            order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter(Loan.username==current_user.username)
 
             return render_template('company.html', form=form, \
                                    rows=order_history, \
@@ -338,14 +338,14 @@ def loan():
             except: # In this case the user did not entered the form data correctly
                 pass
     # RETRIEVING HISTORICAL DATA FOR ORDERS
-    # order_history = Loan.query.filter_by(username=current_user.username)
-    order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter_by(username=current_user.username)
+    order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter(Loan.username==current_user.username)
     return render_template('loan.html', form=form, \
                            rows=order_history, \
                            message=message, \
                            name=current_user.username, \
                            bank_name=bank.name,
-                           companies=Company.query.filter_by(username=current_user.username))
+                        #    companies=Company.query.filter_by(username=current_user.username))
+                           companies=Company.query.all())
 
 @app.route('/currents')
 @login_required
@@ -494,8 +494,7 @@ def company():
 
     if automated_decision == 'rejected':
         message = 'Sorry, your loan has been rejected for Risks.'
-        # order_history = Loan.query.filter_by(username=current_user.username)
-        order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter_by(username=current_user.username)
+        order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter(Loan.username==current_user.username)
         order.status = 'rejected'
         return render_template('company.html', form=form, \
                                rows=order_history , \
@@ -513,8 +512,7 @@ def company():
         order.status = 'acepted'
         db.session.commit()            
 
-        # order_history = Loan.query.filter_by(username=current_user.username)   
-        order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter_by(username=current_user.username)
+        order_history = db.session.query(Loan, Company).join(Company, Loan.nif == Company.nif).filter(Loan.username==current_user.username)
         return render_template('company.html', form=form, \
                                rows=order_history , \
                                message=message, \
