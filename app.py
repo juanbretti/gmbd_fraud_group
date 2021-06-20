@@ -180,7 +180,7 @@ class LoginForm(FlaskForm):
 # FlaskForm class for Loan Form
 class LoanForm(FlaskForm):
     rowid = StringField('Order ID / ID del Pedido')
-    loan_amount = MyFloatField('Loan Amount / Valor del Prestámo ', validators=[InputRequired()])
+    loan_amount = MyFloatField('Loan Amount / Valor del Prestámo [kEUR]', validators=[InputRequired()])
     number_of_installments = SelectField('Number of Installments / Número de Pagos', choices=[('1', '1 payment'), ('2', '2 payments'), ('3', '3 payments'), ('4', '4 payments'),('5', '5 payments'), ('6', '6 payments'), ('7', '7 payments'), ('8', '8 payments')])        
     nif = StringField('Id of the Company / NIF de su Empresa', validators=[InputRequired(), Length(min=9, max=9)],default='')    
 
@@ -188,27 +188,27 @@ class LoanForm(FlaskForm):
 class CompanyForm(FlaskForm):
 #    rowid = StringField('ID')
     orderid = StringField('Order ID / ID del Pedido')     
-    loan_amount = MyFloatField('Loan Amount / Valor del Prestámo', validators=[InputRequired()])
+    loan_amount = MyFloatField('Loan Amount / Valor del Prestámo [kEUR]', validators=[InputRequired()])
     number_of_installments = SelectField('Number of Installments / Número de Pago', choices=[('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'),('5', '5'), ('6', '6'), ('7', '7'), ('8', '8')])           
     nif = StringField('Id of the Company / NIF de su Empresa', validators=[InputRequired(), Length(min=9, max=9)],default='')    
     name = StringField('Name of your Company / Nombre/Razón Social de su Empresa', validators=[InputRequired(), Length(min=3, max=50)])
     cnae = StringField('Industry class / CNAE', validators=[DataRequired()], default='')  
-    p40100_plus_40500 = MyFloatField('Operating Income / Ingresos', validators=[InputRequired()])
-    p49100_plus_40800 = MyFloatField('EBITDA', validators=[InputRequired()])
-    p10000 = MyFloatField('Total Assets / Total activos', validators=[InputRequired()])
-    p20000 = MyFloatField('Own Capital / Patrimonio neto', validators=[InputRequired()])
-    p31200_plus_32300 = MyFloatField('Total Debt / Deuda total', validators=[InputRequired()])
+    p40100_plus_40500 = MyFloatField('Operating Income / Ingresos [kEUR]', validators=[InputRequired()])
+    p49100_plus_40800 = MyFloatField('EBITDA [kEUR]', validators=[InputRequired()])
+    p10000 = MyFloatField('Total Assets / Total activos [kEUR]', validators=[InputRequired()])
+    p20000 = MyFloatField('Own Capital / Patrimonio neto [kEUR]', validators=[InputRequired()])
+    p31200_plus_32300 = MyFloatField('Total Debt / Deuda total [kEUR]', validators=[InputRequired()])
 
 class BankForm(FlaskForm):
     # id = db.Column(db.Integer, primary_key=True)
     name = StringField('Bank name / Nombre del banco', validators=[InputRequired()])
     bank_total_assets = MyFloatField('Total Assets / Activo Total', validators=[InputRequired()])
-    bank_total_borrowed = MyFloatField('Total Borrowed / Total Prestado')
-    coef_own_capital = MyFloatField('Own Capital / Capital Propiedad')
+    bank_total_borrowed = MyFloatField('Total Borrowed / Total Prestado [kEUR]')
+    coef_own_capital = MyFloatField('Own Capital / Capital Propiedad [kEUR]')
     coef_ebitda = MyFloatField('EBITDA')
     coef_concentration = MyFloatField('Concentration / Concentración')
-    prob_default = MyFloatField('Default Probability / Probabilidad de Default', validators=[InputRequired()])
-    interest_rate = MyFloatField('Interest Rate / Tasa de interés', validators=[InputRequired()])
+    prob_default = MyFloatField('Default Probability / Probabilidad de Default [ratio]', validators=[InputRequired()])
+    interest_rate = MyFloatField('Interest Rate / Tasa de interés [%]', validators=[InputRequired()])
 
 ##############################################################################
 #     FlaskForm classes - END                                                #
