@@ -1,0 +1,64 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}
+Current requests
+{% endblock %}
+
+{% block styles %}
+{{super()}}
+<link rel="stylesheet" href="{{url_for('.static', filename='dashboard.css')}}">
+{% endblock %}
+
+{% block content %}
+
+<nav class="navbar navbar-inverse navbar-fixed-top">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+        aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <img src="{{url_for('.static', filename='logo.png')}}" alt="{{bank_name}} logo" height="40">
+      <div class="navbar-brand">{{bank_name}}</div>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="{{ url_for('admin') }}">Administration</a></li>
+        <li><a href="{{ url_for('logout') }}">Log Out</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-3 col-md-2 sidebar">
+      <ul class="nav nav-sidebar">
+        <li class="inactive"><a href="/loan">Loan Request<span class="sr-only">(current)</span></a></li>
+        <li class="inactive"><a href="/currents">Current Requests<span class="sr-only">(current)</span></a></li>
+        <li class="active"><a href="/balance_plot">Balance Plot<span class="sr-only">(current)</span></a></li>
+      </ul>
+      <div style="position: absolute; bottom: 20px;"><img src="{{url_for('.static', filename='ka-complete.png')}}"
+          width="150px"></div>
+    </div>
+    <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+      <h1 class="page-header">Welcome, {{ name }}</h1>
+
+      <h2>{{plot_name}}</h2>
+      <div>Expected cashflow after the loans</div>
+      <img src={{url}} alt="Chart">
+
+      <br />
+      <br />
+
+      <h2>Cumulative interest</h2>
+      <div>{{bank_name}} expected revenue for the loan operations: <b>{{cum_interest}}<b> Euros</div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
